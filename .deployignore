@@ -1,0 +1,11 @@
+# Exclusions propres au plugin routeursolairebe, ajoutées à celles de
+# deploy-plugin.sh. Un motif rsync par ligne ; les lignes vides et celles
+# commençant par # sont ignorées par --exclude-from.
+
+# Le jeu d'essai et les contrôles par réflexion n'existent que pour le
+# développement : ils n'ont rien à faire dans la racine web.
+tests/
+
+# Les traces CSV sont écrites par le plugin dans l'installation : exclues, le
+# déploiement (rsync --delete) ne les efface pas.
+data/traces/

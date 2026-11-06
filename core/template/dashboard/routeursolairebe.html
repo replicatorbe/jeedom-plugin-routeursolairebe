@@ -1,0 +1,122 @@
+<div class="eqLogic eqLogic-widget #class# #category# rsw" data-eqType="#eqType#" data-eqLogic_id="#id#" data-eqLogic_uid="#uid#" data-version="#version#" data-translate-category="#translate_category#" data-category="#category#" data-tags="#tags#" data-rs-ids="#rs_ids#" data-rs-state="#rs_state#" data-rs-modes="#rs_modes#" style="width: #width#;height: #height#;#style#">
+  <div class="widget-name">
+    <span style="color:#background-color#" title="#alert_name#"><i class='#alert_icon#'></i></span>
+    <span class="cmd refresh pull-right cursor" data-cmd_id="#refresh_id#" title="{{Évaluer maintenant}}"><i class="fas fa-sync"></i></span>
+    <span class="reportModeVisible">#name_display# <span class="object_name">#object_name#</span></span>
+    <a href="#eqLink#" class="reportModeHidden">#name_display# <span class="object_name">#object_name#</span></a>
+  </div>
+
+  <div class="rsw-body" data-role="body" data-status="idle">
+    <div class="rsw-top">
+      <div class="rsw-power"><span data-role="surplus">—</span><small>W</small><div class="rsw-sub">{{surplus}}</div></div>
+      <div class="rsw-chip"><i class="fas fa-pause" data-role="chip-icon"></i> <span data-role="chip-text"></span></div>
+    </div>
+    <div class="rsw-badges" data-role="badges"></div>
+    <div class="rsw-tank" data-role="tank-row" title="{{Charge du boiler simulé}}">
+      <i class="fas fa-shower"></i>
+      <div class="rsw-bar"><div class="rsw-fill" data-role="tank-fill"></div></div>
+      <span data-role="tank">—</span>
+    </div>
+    <div class="rsw-grid">
+      <div><span data-role="solar">—</span><small>{{soleil}}</small></div>
+      <div><span data-role="forced">—</span><small>{{forcé}}</small></div>
+      <div><span data-role="savings">—</span><small>{{gain}}</small></div>
+    </div>
+    <select class="rsw-select" data-role="mode" title="{{Mode}}"></select>
+    <div class="rsw-reason" data-role="reason"></div>
+  </div>
+
+  <style>
+    .rsw .rsw-body { padding: 4px 10px 8px 10px; text-align: left; }
+    .rsw .rsw-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .rsw .rsw-power { font-size: 30px; font-weight: 300; line-height: 1; }
+    .rsw .rsw-power small { font-size: 13px; margin-left: 2px; opacity: .7; }
+    .rsw .rsw-sub { font-size: 11px; opacity: .6; margin-top: 2px; }
+    .rsw .rsw-chip { font-size: 12px; padding: 3px 9px; border-radius: 12px; background: rgba(128,128,128,.18); white-space: nowrap; }
+    .rsw [data-status="solar"] .rsw-chip { background: #f2a516; color: #fff; }
+    .rsw [data-status="forced"] .rsw-chip { background: #d6332b; color: #fff; }
+    .rsw [data-status="full"] .rsw-chip { background: #3a9d4a; color: #fff; }
+    .rsw [data-status="alert"] .rsw-chip { background: #d6332b; color: #fff; }
+    .rsw .rsw-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+    .rsw .rsw-badge { font-size: 11px; padding: 1px 7px; border-radius: 9px; background: rgba(43,140,216,.2); }
+    .rsw .rsw-tank { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-size: 12px; }
+    .rsw .rsw-bar { flex: 1; height: 8px; border-radius: 4px; background: rgba(128,128,128,.22); overflow: hidden; }
+    .rsw .rsw-fill { height: 100%; width: 0; background: linear-gradient(90deg, #2b8cd8, #d6332b); }
+    .rsw .rsw-grid { display: flex; justify-content: space-between; text-align: center; margin: 6px 0; }
+    .rsw .rsw-grid div { flex: 1; font-size: 15px; font-weight: 500; }
+    .rsw .rsw-grid small { display: block; font-size: 11px; font-weight: 400; opacity: .6; }
+    .rsw .rsw-select { width: 100%; height: 26px; border-radius: 5px; border: 1px solid rgba(128,128,128,.35); background: transparent; color: inherit; }
+    .rsw .rsw-select option { color: #000; }
+    .rsw .rsw-reason { font-size: 11px; opacity: .75; margin-top: 6px; line-height: 1.3; }
+  </style>
+
+  <script>
+    (function () {
+      const widget = document.querySelector('.eqLogic[data-eqLogic_uid="#uid#"]')
+      if (!widget) { return }
+      const ids = JSON.parse(widget.getAttribute('data-rs-ids') || '{}')
+      const state = JSON.parse(widget.getAttribute('data-rs-state') || '{}')
+      const modes = JSON.parse(widget.getAttribute('data-rs-modes') || '{}')
+      const $ = function (_role) { return widget.querySelector('[data-role="' + _role + '"]') }
+      const val = function (_key) { return (state[_key] === undefined || state[_key] === null) ? '' : String(state[_key]) }
+      const num = function (_key) { const n = parseFloat(val(_key)); return isNaN(n) ? null : n }
+      const fmt = function (_n, _d) { return _n.toLocaleString('fr-BE', { minimumFractionDigits: _d, maximumFractionDigits: _d }) }
+      const icons = { solar: 'fa-sun', forced: 'fa-fire', full: 'fa-check', waiting: 'fa-hourglass-half', idle: 'fa-pause', off: 'fa-power-off', alert: 'fa-exclamation-triangle' }
+
+      const select = $('mode')
+      Object.keys(modes).forEach(function (_mode) {
+        const option = document.createElement('option')
+        option.value = _mode
+        option.textContent = modes[_mode]
+        select.appendChild(option)
+      })
+
+      const exec = function (_logicalId, _options) {
+        if (!ids[_logicalId]) { return }
+        jeedom.cmd.execute({ id: ids[_logicalId], value: _options || {} })
+      }
+
+      const render = function () {
+        const status = val('status') || 'idle'
+        $('body').setAttribute('data-status', status)
+        $('chip-icon').className = 'fas ' + (icons[status] || 'fa-pause')
+        $('chip-text').textContent = val('state')
+        $('surplus').textContent = (num('surplus') === null) ? '—' : fmt(num('surplus'), 0)
+        const tank = num('tank')
+        $('tank-row').style.display = (val('simulation') === '1' && tank !== null) ? '' : 'none'
+        if (tank !== null) {
+          $('tank').textContent = fmt(tank, 0) + ' %'
+          $('tank-fill').style.width = Math.max(0, Math.min(100, tank)) + '%'
+        }
+        $('solar').textContent = (num('solar_today') === null) ? '—' : fmt(num('solar_today'), 1) + ' kWh'
+        $('forced').textContent = (num('forced_today') === null) ? '—' : fmt(num('forced_today'), 1) + ' kWh'
+        $('savings').textContent = (num('savings_today') === null) ? '—' : fmt(num('savings_today'), 2) + ' €'
+        select.value = val('mode') || 'auto'
+        $('reason').textContent = val('reason')
+        const badges = $('badges')
+        badges.innerHTML = ''
+        const badge = function (_text) {
+          const span = document.createElement('span')
+          span.className = 'rsw-badge'
+          span.textContent = _text
+          badges.appendChild(span)
+        }
+        if (val('simulation') === '1') { badge('{{Simulation}}') }
+        if (num('deficit') !== null && num('deficit') > 0.05) { badge('{{reste}} ' + fmt(num('deficit'), 1) + ' kWh') }
+        if (num('cycles_today') !== null && num('cycles_today') > 0) { badge(fmt(num('cycles_today'), 0) + ' {{allumage(s)}}') }
+      }
+
+      select.addEventListener('change', function () { exec('set_mode', { select: select.value }) })
+
+      Object.keys(state).forEach(function (_key) {
+        if (!ids[_key]) { return }
+        jeedom.cmd.addUpdateFunction(ids[_key], function (_options) {
+          if (document.querySelector('.eqLogic[data-eqLogic_uid="#uid#"]') === null) { return }
+          state[_key] = (_options.value === null || _options.value === undefined) ? '' : String(_options.value)
+          render()
+        })
+      })
+      render()
+    })()
+  </script>
+</div>

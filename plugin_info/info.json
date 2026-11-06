@@ -1,0 +1,33 @@
+{
+    "id": "routeursolairebe",
+    "name": "Routeur Solaire BE",
+    "pluginVersion": "0.1",
+    "description": {
+        "fr_FR": "Chauffer l'eau du boiler avec le soleil qu'on injecte sur le réseau, et garantir quand même l'eau chaude quand il n'y en a pas. Un routeur solaire tout ou rien : le boiler est commandé par un relais, sans gradateur. Il écoute la puissance au compteur (P1 HomeWizard ou tout autre compteur), à chaque mesure, et allume le boiler quand le surplus couvre presque toute sa résistance, en comptant ce que le boiler consomme déjà pour ne pas l'éteindre aussitôt allumé. Une fois allumé, les wattheures prélevés tombent dans un seau que le soleil revenu vide : un nuage passager ne l'éteint pas, un ciel qui se couvre pour de bon, si. Durées minimales de marche et d'arrêt pour le contacteur, coupure immédiate sur un prélèvement fort. Sans sonde, il devine que le boiler est plein quand son thermostat a coupé. Chaque journée a un objectif en kWh : ce que le soleil n'a pas fait est rattrapé en heures creuses, à la fin de la nuit, et une chauffe complète anti-légionelle est forcée si le boiler n'a pas été plein depuis une semaine. Avant même d'avoir un boiler, le mode simulation fait tourner le même cerveau sur un boiler virtuel, avec ses douches et ses pertes, et trace chaque minute dans un fichier CSV : kWh solaires routés, chauffe forcée nécessaire, allumages, gain estimé.",
+        "en_US": "Heat the water heater with the solar power you would otherwise export to the grid, and still guarantee hot water when there is no sun. An on/off solar router: the water heater is driven by a relay, without a dimmer. It listens to the grid power at the meter (HomeWizard P1 or any other meter) on every reading, and switches the heater on when the surplus covers almost all of its element, counting what the heater already draws so that it does not switch off as soon as it is on. Once on, the watt-hours drawn from the grid fall into a bucket that the returning sun empties: a passing cloud does not switch it off, a sky that clouds over for good does. Minimum on and off times for the contactor, immediate cut-off on heavy import. Without any probe, it works out that the tank is full when its thermostat has cut. Each day has a target in kWh: whatever the sun did not do is made up during off-peak hours, at the end of the night, and a full anti-legionella heat is forced if the tank has not been full for a week. Even before the heater exists, simulation mode runs the same brain on a virtual heater, with its showers and its losses, and logs every minute to a CSV file: solar kWh diverted, forced heating needed, switchings, estimated savings."
+    },
+    "licence": "AGPL",
+    "author": "sMug (Jérôme Fafchamps)",
+    "require": "4.4",
+    "requireOsVersion": "11",
+    "category": "energy",
+    "index": "routeursolairebe",
+    "hasDependency": 0,
+    "hasOwnDeamon": 0,
+    "maxDependancyInstallTime": 5,
+    "eventjs": 0,
+    "issue": "https://github.com/replicatorbe/jeedom-plugin-routeursolairebe/issues",
+    "documentation": "https://github.com/replicatorbe/jeedom-plugin-routeursolairebe/blob/master/docs/#language#/index.md",
+    "documentation_beta": "https://github.com/replicatorbe/jeedom-plugin-routeursolairebe/blob/beta/docs/#language#/index.md",
+    "changelog": "https://github.com/replicatorbe/jeedom-plugin-routeursolairebe/blob/master/docs/#language#/changelog.md",
+    "changelog_beta": "https://github.com/replicatorbe/jeedom-plugin-routeursolairebe/blob/beta/docs/#language#/changelog.md",
+    "language": [
+        "fr_FR"
+    ],
+    "compatibility": [
+        "smart",
+        "rpi",
+        "docker",
+        "diy"
+    ]
+}
