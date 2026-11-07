@@ -60,7 +60,7 @@ class routeursolairebeEngine {
         /* La garantie d'eau chaude. */
         'daily_target'    => 4.0,    // kWh à chauffer par journée
         'forced_margin'   => 30,     // min de marge avant la fin de la plage
-        'legionella_days' => 7,      // jours sans boiler plein avant une chauffe complète (0 = jamais)
+        'legionella_days' => 2,      // jours sans boiler plein avant une chauffe complète (0 = jamais)
         'legionella_max'  => 8,      // h de chauffe complète au plus
         /* Le boiler simulé. */
         'tank_volume'     => 200,    // L
@@ -301,6 +301,7 @@ class routeursolairebeEngine {
             'probe'        => null,
             'forced'       => '',
             'legio_since'  => 0,
+            'forced_left'  => 0.0,    // ce qui restait à la dernière minute de chauffe forcée
             'period'       => null,
             'stats'        => self::freshStats(),
             'yesterday'    => null,
@@ -415,7 +416,7 @@ class routeursolairebeEngine {
 
         /* 8. Protéger le relais : durées minimales de marche et d'arrêt. */
         if ($target != $previous) {
-            if ($previous == 1 && !in_array($code, array('mode_off', 'hard_import', 'forced_done'), true)
+            if ($previous == 1 && !in_array($code, array('mode_off', 'hard_import', 'forced_done', 'forced_cut', 'legionella_cut'), true)
                 && $now - (int) $st['on_at'] < $s['min_on'] * 60) {
                 $detail = array('left' => $s['min_on'] * 60 - ($now - (int) $st['on_at']), 'wanted' => $code);
                 $target = 1;
@@ -509,6 +510,7 @@ class routeursolairebeEngine {
 
         /* La chauffe forcée : rattraper ce que le soleil n'a pas fait. */
         $wasForced = ($st['forced'] !== '');
+        $wasLegionella = ($st['forced'] === 'legionella');
         $forced = self::forced($st, $s, $now, $fullNow);
         if ($forced !== null) {
             return $forced;
@@ -518,6 +520,17 @@ class routeursolairebeEngine {
          * d'un prélèvement qui n'a rien à voir avec un nuage. */
         $threshold = $power - $s['on_margin'];
         if ($wasForced && $st['relay'] == 1 && ($avail === null || $avail < $threshold)) {
+            /* Fini, ou coupé par la fin de la plage avant d'avoir fini : ce
+             * n'est pas la même nouvelle, le journal doit le dire. */
+            if ($wasLegionella && !$fullNow) {
+                return array(0, 'legionella_cut', array());
+            }
+            /* À la fin de plage, la journée a souvent déjà basculé : ce qui
+             * manquait se lit dans la dernière minute de chauffe. */
+            $windowOpen = self::windowEnd($now, self::parseWindows($s['forced_windows'])) !== null;
+            if (!$windowOpen && !$fullNow && $st['forced_left'] > 0.05) {
+                return array(0, 'forced_cut', array('deficit' => $st['forced_left']));
+            }
             return array(0, 'forced_done', array());
         }
 
@@ -580,9 +593,11 @@ class routeursolairebeEngine {
      * de nuit — et elle s'y place à la fin, juste ce qu'il faut avant la fin
      * de plage : l'eau est chaude au réveil, sans avoir refroidi toute la nuit.
      *
-     * Tous les « legionella_days » jours sans boiler plein, elle chauffe
-     * jusqu'au bout, dès le début de la plage : un boiler qui n'atteint
-     * jamais sa consigne finit par abriter des légionelles.
+     * Quand le boiler n'aura pas été plein depuis « legionella_days » jours
+     * à la fin de la plage, elle chauffe jusqu'au bout : un boiler qui
+     * n'atteint jamais sa consigne finit par abriter des légionelles, et un
+     * objectif du jour trop court finit par le vider. Cette chauffe complète
+     * se place, elle aussi, en fin de plage, avec le temps d'un boiler entier.
      */
     private static function forced(&$st, $s, $now, $fullNow) {
         $end = self::windowEnd($now, self::parseWindows($s['forced_windows']));
@@ -592,7 +607,14 @@ class routeursolairebeEngine {
             return null;
         }
         $days = ($now - (int) $st['full_at']) / 86400;
-        if ($s['legionella_days'] > 0 && $days >= $s['legionella_days'] && !$fullNow) {
+        $due = $s['legionella_days'] > 0 && ($end - (int) $st['full_at']) >= $s['legionella_days'] * 86400;
+        if ($due && !$fullNow) {
+            $hours = min($s['legionella_max'], self::tankCapacity($s) / ($s['boiler_power'] / 1000));
+            $start = (int) ($end - $hours * 3600 - $s['forced_margin'] * 60);
+            if (!$st['legio_since'] && $now < $start) {
+                $st['forced'] = '';
+                return array(0, 'legionella_later', array('days' => $days, 'start' => $start));
+            }
             if (!$st['legio_since']) {
                 $st['legio_since'] = $now;
             }
@@ -614,6 +636,7 @@ class routeursolairebeEngine {
          * placerait un peu plus tard. */
         if ($st['forced'] === 'deficit' || $now >= $start) {
             $st['forced'] = 'deficit';
+            $st['forced_left'] = $deficit;
             return array(1, 'forced', array('deficit' => $deficit, 'end' => $end));
         }
         $st['forced'] = '';
@@ -723,7 +746,8 @@ class routeursolairebeEngine {
 
     const STATUS = array(
         'mode_off' => 'off', 'mode_on' => 'forced', 'forced' => 'forced', 'legionella' => 'forced',
-        'forced_later' => 'idle', 'forced_done' => 'idle', 'no_measure' => 'alert', 'solar_start' => 'solar',
+        'forced_later' => 'idle', 'forced_done' => 'idle', 'forced_cut' => 'idle',
+        'legionella_later' => 'idle', 'legionella_cut' => 'idle', 'no_measure' => 'alert', 'solar_start' => 'solar',
         'waiting_surplus' => 'waiting', 'no_surplus' => 'idle', 'hard_import' => 'idle',
         'budget' => 'idle', 'solar_running' => 'solar', 'solar_full' => 'full',
         'min_on' => 'waiting', 'min_off' => 'waiting',
@@ -808,8 +832,15 @@ class routeursolairebeEngine {
             case 'forced_later':
                 return sprintf('Il manque %s : chauffe forcée prévue à %s', self::kwh($_detail['deficit']),
                                date('H:i', $_detail['start']));
+            case 'forced_cut':
+                return sprintf('Fin de la plage de chauffe forcée : il manquait encore %s', self::kwh($_detail['deficit']));
             case 'legionella':
-                return sprintf('Chauffe complète anti-légionelle : pas de boiler plein depuis %s jours', number_format($_detail['days'], 1, ',', ''));
+                return sprintf('Chauffe complète : pas de boiler plein depuis %s jours', number_format($_detail['days'], 1, ',', ''));
+            case 'legionella_later':
+                return sprintf('Pas de boiler plein depuis %s jours : chauffe complète prévue à %s',
+                               number_format($_detail['days'], 1, ',', ''), date('H:i', $_detail['start']));
+            case 'legionella_cut':
+                return 'Chauffe complète arrêtée avant le boiler plein (fin de plage ou durée maximale) : elle reprendra la nuit prochaine';
             case 'min_on':
                 return sprintf('Durée minimale de marche : encore %s', self::duration($_detail['left']));
             case 'min_off':

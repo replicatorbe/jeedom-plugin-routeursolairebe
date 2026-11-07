@@ -54,6 +54,7 @@ class Maison {
     public $simulation = true;
     public $allumages = array();
     public $journal = array();
+    public $raisons = array();
 
     public function __construct($_reglages = array(), $_debut = '2026-06-15 07:00:00') {
         $this->reglages = routeursolairebeEngine::cleanSettings($_reglages);
@@ -81,6 +82,7 @@ class Maison {
         while ($this->now < $fin) {
             $this->passe($_profil($this->now));
             $this->journal[$this->dernier['code']] = true;
+            $this->raisons[$this->dernier['code']] = $this->dernier['reason'];
             $this->now += $_pas;
         }
     }
@@ -236,17 +238,39 @@ $m->passe(-2600, 15);
 verifie('avec une mesure de puissance : 15 W, il est plein', $m->dernier['values']['full'], 1);
 
 /* ------------------------------------------------------------------ 9 ---
- * Huit jours sans boiler plein : chauffe complète dès le début de la nuit. */
+ * Huit jours sans boiler plein : chauffe complète, placée en fin de nuit
+ * avec le temps d'un boiler entier (200 L, 2,4 kW : 4 h 39, plus la marge, avant 07:00). */
 echo "\nAnti-légionelle\n";
 $m = new Maison(array(), '2026-11-06 21:50:00');
 $m->etat = routeursolairebeEngine::cleanState(array(), $m->reglages, $m->now);
 $m->etat['full_at'] = strtotime('-8 days', $m->now);
 $m->etat['sim_energy'] = 3.0;
 $m->rejoue('+30 minutes', function ($_ts) { return 300; });
-verifie('chauffe à 22 h', $m->dernier['code'], 'legionella');
-$m->rejoue('+5 hours', function ($_ts) { return 300; });
+verifie('prévue, pas encore lancée à 22 h 20', $m->dernier['code'], 'legionella_later');
+verifieVrai('prévue à 01:50', strpos($m->dernier['reason'], '01:50') !== false);
+$m->rejoue('+4 hours', function ($_ts) { return 300; });
+verifie('lancée à 02:20', $m->dernier['code'], 'legionella');
+$m->rejoue('+4 hours', function ($_ts) { return 300; });
 verifie('jusqu\'à ce que le boiler soit plein', $m->dernier['values']['full'], 1);
 verifieVrai('le compteur de jours repart', $m->dernier['values']['days_full'] < 1);
+verifieVrai('plein avant 07:00, sans être coupé', !isset($m->journal['legionella_cut']));
+
+/* Une plage trop courte coupe la chauffe complète : le journal le dit, et
+ * elle reprend la nuit suivante. */
+$m = new Maison(array('forced_windows' => '05:00-07:00'), '2026-11-06 21:50:00');
+$m->etat = routeursolairebeEngine::cleanState(array(), $m->reglages, $m->now);
+$m->etat['full_at'] = strtotime('-8 days', $m->now);
+$m->etat['sim_energy'] = 0.0;
+$m->rejoue('+10 hours', function ($_ts) { return 300; });
+verifieVrai('coupée à 07:00 : le journal ne dit pas « terminée »', isset($m->journal['legionella_cut']) && !isset($m->journal['forced_done']));
+$m->rejoue('+22 hours', function ($_ts) { return 300; });
+verifie('reprise la nuit suivante', $m->dernier['code'], 'legionella');
+
+/* Une chauffe ordinaire coupée par la fin de plage dit ce qui manquait à la
+ * journée qui finit, pas l'objectif de celle qui commence. */
+$m = new Maison(array('forced_windows' => '06:30-07:00'), '2026-11-06 21:50:00');
+$m->rejoue('+10 hours', function ($_ts) { return 300; });
+verifieVrai('coupée : « il manquait encore 2,8x kWh », pas 4', strpos($m->raisons['forced_cut'] ?? '', 'encore 2,8') !== false);
 
 /* ------------------------------------------------------------------ 10 ---
  * Les modes imposés. */

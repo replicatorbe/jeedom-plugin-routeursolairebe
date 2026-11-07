@@ -45,9 +45,13 @@ peut ajouter cette plage (« 22:00-07:00, 11:00-17:00 »), mais elle prendrait
 au réseau ce que le soleil de l'après-midi aurait peut-être fait. Jamais de
 17 h à 22 h, c'est la pointe.
 
-**Anti-légionelle** : si le boiler n'a pas été plein depuis 7 jours, il
-chauffe jusqu'au bout dès le début de la plage de nuit (8 h au plus). Réglez
-le thermostat du boiler à 60 °C au moins.
+**Boiler plein régulièrement** : si le boiler n'a pas été plein depuis 2
+jours, la nuit suivante il chauffe jusqu'au bout (8 h au plus). Cette chauffe
+complète se place en fin de plage, avec le temps de chauffer un boiler entier.
+Elle rattrape un objectif du jour plus court que ce que la maison consomme
+vraiment : sans elle, le boiler se viderait petit à petit pendant une semaine
+grise. Elle tient aussi les légionelles à distance : réglez le thermostat du
+boiler à 60 °C au moins.
 
 ## Le mode simulation
 

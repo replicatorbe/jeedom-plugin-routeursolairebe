@@ -100,6 +100,7 @@ $ts = $debut;
 $cles = array_keys($mesures);
 $i = 0;
 $decision = null;
+$mini = null;
 while ($ts <= $fin) {
     while ($i < count($cles) && $cles[$i] <= $ts) {
         $derniere = $mesures[$cles[$i]];
@@ -108,7 +109,12 @@ while ($ts <= $fin) {
     $decision = routeursolairebeEngine::decide($s, array('now' => $ts, 'grid' => $derniere, 'simulation' => true), $etat);
     $etat = $decision['state'];
     if (in_array('rollover', $decision['events'], true)) {
-        $journees[] = $decision['values']['yesterday'];
+        $journees[] = $decision['values']['yesterday'] + array('mini' => $mini);
+        $mini = null;
+    }
+    $charge = $decision['values']['tank'];
+    if ($charge !== null && ($mini === null || $charge < $mini)) {
+        $mini = $charge;
     }
     if (in_array('on', $decision['events'], true) || in_array('off', $decision['events'], true)) {
         $bascules[] = date('d/m H:i:s', $ts) . ($decision['target'] ? '  ON  ' : '  off ') . $decision['reason'];
@@ -122,11 +128,12 @@ foreach ($reglages as $cle => $valeur) {
     echo "$cle=" . $s[$cle] . ' ';
 }
 echo (count($reglages) == 0 ? "par défaut" : "") . "\n\n";
-printf("%-11s %8s %8s %8s %8s %8s %4s %7s %7s %s\n", 'journée', 'chauffé', 'soleil', 'réseau', 'forcé', 'injecté', 'cyc', 'chauffe', 'gain', 'plein');
+printf("%-11s %8s %8s %8s %8s %8s %4s %7s %7s %5s %s\n", 'journée', 'chauffé', 'soleil', 'réseau', 'forcé', 'injecté', 'cyc', 'chauffe', 'gain', 'mini', 'plein');
 $total = routeursolairebeEngine::freshStats();
 foreach ($journees as $j) {
-    printf("%-11s %8.2f %8.2f %8.2f %8.2f %8.2f %4d %7s %6.2f€ %s\n", $j['period'], $j['heated'], $j['solar'], $j['grid'],
-           $j['forced'], $j['exported'], $j['cycles'], routeursolairebeEngine::duration($j['on_s']), $j['savings'], $j['full'] ? 'oui' : '');
+    printf("%-11s %8.2f %8.2f %8.2f %8.2f %8.2f %4d %7s %6.2f€ %4s%% %s\n", $j['period'], $j['heated'], $j['solar'], $j['grid'],
+           $j['forced'], $j['exported'], $j['cycles'], routeursolairebeEngine::duration($j['on_s']), $j['savings'],
+           $j['mini'] === null ? '—' : round($j['mini']), $j['full'] ? 'oui' : '');
     foreach (array('heated', 'solar', 'grid', 'forced', 'exported', 'savings', 'cycles') as $cle) {
         $total[$cle] += $j[$cle];
     }

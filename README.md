@@ -13,8 +13,8 @@ garantir quand même l'eau chaude quand il n'y en a pas.
   l'éteint pas, un ciel qui se couvre pour de bon, si.
 - Le **boiler plein** est deviné sans sonde, quand son thermostat a coupé.
 - L'**eau chaude garantie** : ce que le soleil n'a pas chauffé est rattrapé en
-  heures creuses, en fin de nuit, avec une chauffe complète anti-légionelle
-  chaque semaine.
+  heures creuses, en fin de nuit, avec une chauffe complète si le boiler n'a
+  pas été plein depuis deux jours.
 - Un **mode simulation** qui fait tourner le même cerveau sur un boiler
   virtuel, avant même d'avoir le boiler, et trace chaque minute dans un CSV.
 

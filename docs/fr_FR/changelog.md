@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2
+
+- **Chauffe complète tous les 2 jours sans boiler plein** (7 auparavant) : un
+  objectif du jour plus court que la consommation réelle vidait le boiler en
+  une semaine grise. Elle se place en fin de nuit au lieu de partir dès que le
+  délai tombait, à une heure qui glissait d'une nuit à l'autre.
+- **Journal plus juste** : une chauffe coupée par la fin de la plage le dit,
+  avec ce qui manquait, au lieu d'annoncer « la journée a son eau chaude ».
+- **tools/rejoue.php** : colonne de charge minimale du boiler simulé.
+
 ## 0.1
 
 - **Première version** : un routeur solaire tout ou rien pour un boiler

@@ -316,9 +316,9 @@ function routeursolairebeField($_key, $_label, $_unit, $_placeholder, $_help) {
 				<div class="col-lg-6">
 					<form class="form-horizontal">
 						<fieldset>
-							<legend><i class="fas fa-bacterium"></i> {{Anti-légionelle}}</legend>
+							<legend><i class="fas fa-bacterium"></i> {{Boiler plein régulièrement}}</legend>
 							<?php
-							routeursolairebeField('legionella_days', '{{Chauffe complète après}}', '{{jours}}', $d['legionella_days'], '{{Si le boiler n\'a pas été plein depuis ce nombre de jours, il chauffe jusqu\'au bout dès le début de la plage de nuit. Réglez son thermostat à 60 °C au moins. 0 désactive.}}');
+							routeursolairebeField('legionella_days', '{{Chauffe complète après}}', '{{jours}}', $d['legionella_days'], '{{Si le boiler n\'a pas été plein depuis ce nombre de jours, la nuit suivante il chauffe jusqu\'au bout, en fin de plage. Cela rattrape un objectif du jour trop court, qui viderait le boiler petit à petit, et tient les légionelles à distance (thermostat du boiler à 60 °C au moins). 0 désactive.}}');
 							routeursolairebeField('legionella_max', '{{Durée maximale}}', 'h', $d['legionella_max'], '{{La chauffe complète s\'arrête au bout de ce temps, même sans boiler plein.}}');
 							?>
 						</fieldset>
